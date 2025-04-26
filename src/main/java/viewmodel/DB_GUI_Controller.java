@@ -43,6 +43,10 @@ public class DB_GUI_Controller implements Initializable {
     private TableColumn<Person, String> tv_fn, tv_ln, tv_department, tv_major, tv_email;
     private final DbConnectivityClass cnUtil = new DbConnectivityClass();
     private final ObservableList<Person> data = cnUtil.getData();
+    @FXML
+    private ComboBox<Major> majorComboBox;
+    @FXML
+    private Label statusLabel;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -54,6 +58,14 @@ public class DB_GUI_Controller implements Initializable {
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
             tv.setItems(data);
+
+            majorComboBox.setItems(FXCollections.observableArrayList(Major.values()));
+            majorComboBox.getSelectionModel().selectFirst();
+
+            tv.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                boolean selected = newVal != null;
+            });
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -62,24 +74,44 @@ public class DB_GUI_Controller implements Initializable {
     @FXML
     protected void addNewRecord() {
 
-            Person p = new Person(first_name.getText(), last_name.getText(), department.getText(),
-                    major.getText(), email.getText(), imageURL.getText());
+        if (validateForm()) {
+            Person p = new Person(
+                    first_name.getText(),
+                    last_name.getText(),
+                    department.getText(),
+                    majorComboBox.getValue().toString(),
+                    email.getText(),
+                    imageURL.getText()
+            );
             cnUtil.insertUser(p);
             cnUtil.retrieveId(p);
             p.setId(cnUtil.retrieveId(p));
             data.add(p);
+            statusLabel.setText("Record added successfully.");
             clearForm();
-
+        } else {
+            statusLabel.setText("Please correct the form fields.");
+        }
     }
+
+    private boolean validateForm() {
+        return first_name.getText().matches("^[A-Z][a-zA-Z]*$") &&
+                last_name.getText().matches("^[A-Z][a-zA-Z]*$") &&
+                department.getText().matches("^[A-Za-z ]+$") &&
+                email.getText().matches("^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,6}$");
+    }
+
+
 
     @FXML
     protected void clearForm() {
-        first_name.setText("");
-        last_name.setText("");
-        department.setText("");
-        major.setText("");
-        email.setText("");
-        imageURL.setText("");
+        first_name.clear();
+        last_name.clear();
+        department.clear();
+        majorComboBox.getSelectionModel().selectFirst();
+        email.clear();
+        imageURL.clear();
+        statusLabel.setText("Form cleared.");
     }
 
     @FXML
@@ -124,6 +156,7 @@ public class DB_GUI_Controller implements Initializable {
         data.remove(p);
         data.add(index, p2);
         tv.getSelectionModel().select(index);
+        statusLabel.setText("Record updated successfully.");
     }
 
     @FXML
@@ -133,6 +166,7 @@ public class DB_GUI_Controller implements Initializable {
         cnUtil.deleteRecord(p);
         data.remove(index);
         tv.getSelectionModel().select(index);
+        statusLabel.setText("Record deleted.");
     }
 
     @FXML
@@ -214,7 +248,9 @@ public class DB_GUI_Controller implements Initializable {
         });
     }
 
-    private static enum Major {Business, CSC, CPIS}
+    private static enum Major {
+        Business, CSC, CPIS, English
+    }
 
     private static class Results {
 
